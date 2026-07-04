@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Pin, PinOff, Archive, Trash2, Loader2,
+  ArrowLeft, Pin, PinOff, Star, Share2, MoreHorizontal,
+  Archive, ArchiveRestore, Trash2, Loader2, Clock, Type, BookOpen,
 } from 'lucide-react';
 import { TagBadge } from './TagBadge';
 import { Modal } from './Modal';
@@ -9,49 +9,43 @@ import { useNotes } from '../hooks/useNotes';
 import { formatDate } from '../utils/formatDate';
 import styles from './NoteEditor.module.css';
 
-const COLOR_OPTIONS = ['#ffffff', '#fef3c7', '#dbeafe', '#e0e7ff', '#fce7f3', '#d1fae5', '#fae8ff', '#ffedd5'];
-
 export function NoteEditor({ noteId }) {
-  const navigate = useNavigate();
-  const { getNote, addNote, updateNote, deleteNote, archiveNote, pinNote, allTags } = useNotes();
+  const { getNote, addNote, updateNote, trashNote, restoreNote, permanentDeleteNote, archiveNote, pinNote, allTags, setSelectedNoteId } = useNotes();
 
-  const existingNote = noteId && noteId !== 'new' ? getNote(noteId) : null;
-  const isNewParam = !existingNote && noteId === 'new';
+  const existingNote = getNote(noteId);
+  const isNew = !existingNote;
 
   const [title, setTitle] = useState(() => existingNote?.title ?? '');
   const [content, setContent] = useState(() => existingNote?.content ?? '');
   const [tags, setTags] = useState(() => existingNote?.tags ?? []);
-  const [color, setColor] = useState(() => existingNote?.color ?? '#ffffff');
   const [tagInput, setTagInput] = useState('');
   const [saved, setSaved] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [showColorPicker, setShowColorPicker] = useState(false);
-
-  const [noteIdState, setNoteIdState] = useState(() =>
-    existingNote ? existingNote.id : null
-  );
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [internalNoteId, setInternalNoteId] = useState(() => existingNote?.id ?? null);
 
   const titleRef = useRef(null);
-  const textareaRef = useRef(null);
   const createdRef = useRef(false);
-  const colorBtnRef = useRef(null);
+  const savedTimerRef = useRef(null);
+  const moreMenuRef = useRef(null);
 
-  // ── Immediate creation for new notes ──
+  // ── Create new note ──
   useEffect(() => {
-    if (!isNewParam) return;
+    if (!isNew) return;
     if (createdRef.current) return;
     createdRef.current = true;
 
-    const newNote = addNote({ title: '', content: '', tags: [], color: '#ffffff' });
-    setNoteIdState(newNote.id);
-    navigate(`/note/${newNote.id}`, { replace: true });
+    const newNote = addNote({ title: '', content: '', tags: [] });
+    setInternalNoteId(newNote.id);
+    // Update the selected note ID so URL stays in sync
+    // (we can't navigate, but we can update the context)
     setTimeout(() => titleRef.current?.focus(), 100);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Re-init when navigating between existing notes ──
+  // ── Re-init when navigating between notes ──
   const initRef = useRef(null);
   useEffect(() => {
-    if (!noteId || noteId === 'new') return;
+    if (!noteId) return;
     if (initRef.current === noteId) return;
     initRef.current = noteId;
 
@@ -60,41 +54,35 @@ export function NoteEditor({ noteId }) {
       setTitle(note.title);
       setContent(note.content);
       setTags(note.tags);
-      setColor(note.color || '#ffffff');
-      setNoteIdState(note.id);
+      setInternalNoteId(note.id);
       setSaved(true);
-    } else {
-      setNoteIdState(null);
     }
   }, [noteId, getNote]);
 
   // ── Auto-save ──
-  const savedTimerRef = useRef(null);
-
   useEffect(() => {
-    if (!noteIdState) return;
+    if (!internalNoteId) return;
 
     const timer = setTimeout(() => {
-      const original = getNote(noteIdState);
+      const original = getNote(internalNoteId);
       if (!original) return;
 
       const hasChanged =
         title !== original.title ||
         content !== original.content ||
-        JSON.stringify(tags) !== JSON.stringify(original.tags) ||
-        color !== (original.color || '#ffffff');
+        JSON.stringify(tags) !== JSON.stringify(original.tags);
 
       if (hasChanged) {
         setSaved(false);
-        updateNote(noteIdState, { title, content, tags, color });
+        updateNote(internalNoteId, { title, content, tags });
         clearTimeout(savedTimerRef.current);
         savedTimerRef.current = setTimeout(() => setSaved(true), 400);
       }
-    }, 800);
+    }, 600);
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, content, JSON.stringify(tags), color, noteIdState]);
+  }, [title, content, JSON.stringify(tags), internalNoteId]);
 
   useEffect(() => {
     return () => {
@@ -137,29 +125,50 @@ export function NoteEditor({ noteId }) {
   );
 
   // ── Actions ──
-  const isPinned = getNote(noteIdState)?.pinned ?? false;
+  const activeId = existingNote ? existingNote.id : internalNoteId;
+  const note = getNote(activeId);
+  const isPinned = note?.pinned ?? false;
 
   const handlePin = () => {
-    if (noteIdState) pinNote(noteIdState);
+    if (activeId) pinNote(activeId);
   };
 
   const handleArchive = () => {
-    if (noteIdState) {
-      archiveNote(noteIdState);
-      navigate('/');
+    if (activeId) {
+      archiveNote(activeId);
+      setSelectedNoteId(null);
     }
   };
 
-  const handleDeleteClick = () => {
-    if (noteIdState) setDeleteModalOpen(true);
+  const handleTrashClick = () => {
+    if (activeId) setDeleteModalOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (noteIdState) {
-      deleteNote(noteIdState);
+  const confirmTrash = () => {
+    if (activeId) {
+      trashNote(activeId);
       setDeleteModalOpen(false);
-      navigate('/', { replace: true });
+      setSelectedNoteId(null);
     }
+  };
+
+  const handleRestore = () => {
+    if (activeId) {
+      restoreNote(activeId);
+      setSelectedNoteId(null);
+    }
+  };
+
+  const handlePermanentDelete = () => {
+    if (activeId) {
+      permanentDeleteNote(activeId);
+      setDeleteModalOpen(false);
+      setSelectedNoteId(null);
+    }
+  };
+
+  const handleBack = () => {
+    setSelectedNoteId(null);
   };
 
   // ── Word count ──
@@ -167,46 +176,47 @@ export function NoteEditor({ noteId }) {
     ? content.trim().split(/\s+/).length
     : 0;
   const charCount = content.length;
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
 
-  // ── Close color picker on outside click ──
+  // ── Close more menu on outside click ──
   useEffect(() => {
-    if (!showColorPicker) return;
+    if (!showMoreMenu) return;
     const handler = (e) => {
-      if (colorBtnRef.current && !colorBtnRef.current.contains(e.target)) {
-        setShowColorPicker(false);
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) {
+        setShowMoreMenu(false);
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [showColorPicker]);
+  }, [showMoreMenu]);
 
-  // ── Render ──
-  if (isNewParam && !noteIdState) {
+  // ── Render: creating state ──
+  if (isNew && !internalNoteId) {
     return (
       <div className={styles.editor}>
         <div className={styles.toolbar}>
-          <button className={styles.toolBack} onClick={() => navigate('/')}>
-            <ArrowLeft size={15} /> Back
+          <button className={styles.toolBack} onClick={handleBack}>
+            <ArrowLeft size={16} />
           </button>
-          <div className={styles.toolbarSpacer} />
           <span className={styles.saving}>
-            <Loader2 size={13} className={styles.spinner} /> Creating…
+            <Loader2 size={14} className={styles.spinner} /> Creating…
           </span>
         </div>
       </div>
     );
   }
 
-  if (!noteIdState && !isNewParam) {
+  // ── Render: note not found ──
+  if (!activeId) {
     return (
       <div className={styles.editor}>
         <div className={styles.toolbar}>
-          <button className={styles.toolBack} onClick={() => navigate('/')}>
-            <ArrowLeft size={15} /> Back
+          <button className={styles.toolBack} onClick={handleBack}>
+            <ArrowLeft size={16} />
           </button>
         </div>
         <div className={styles.editorInner}>
-          <p style={{ color: 'var(--color-text-tertiary)', marginTop: '2rem' }}>Note not found.</p>
+          <p className={styles.notFound}>Note not found.</p>
         </div>
       </div>
     );
@@ -214,11 +224,10 @@ export function NoteEditor({ noteId }) {
 
   return (
     <div className={styles.editor}>
-
-      {/* ── Floating toolbar ── */}
+      {/* ── Top Toolbar ── */}
       <div className={styles.toolbar}>
-        <button className={styles.toolBack} onClick={() => navigate('/')}>
-          <ArrowLeft size={15} /> Back
+        <button className={styles.toolBack} onClick={handleBack} aria-label="Back to notes">
+          <ArrowLeft size={16} />
         </button>
 
         <div className={styles.toolbarSpacer} />
@@ -230,172 +239,207 @@ export function NoteEditor({ noteId }) {
             aria-label={isPinned ? 'Unpin note' : 'Pin note'}
             title={isPinned ? 'Unpin' : 'Pin'}
           >
-            {isPinned ? <PinOff size={15} /> : <Pin size={15} />}
+            {isPinned ? <PinOff size={16} /> : <Pin size={16} />}
+          </button>
+          <button
+            className={`${styles.toolBtn} ${isPinned ? styles.toolFavActive : ''}`}
+            onClick={handlePin}
+            aria-label={isPinned ? 'Remove from favorites' : 'Add to favorites'}
+            title={isPinned ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            <Star size={16} />
           </button>
           <button
             className={styles.toolBtn}
-            onClick={handleArchive}
-            aria-label="Archive note"
-            title="Archive"
+            onClick={async () => {
+              const shareData = {
+                title: note?.title || 'Untitled Note',
+                text: note?.content || '',
+              };
+              if (navigator.share) {
+                try {
+                  await navigator.share(shareData);
+                } catch {
+                  // user cancelled
+                }
+              } else {
+                try {
+                  await navigator.clipboard.writeText(
+                    `${shareData.title}\n\n${shareData.text}`
+                  );
+                  // brief visual feedback
+                  const btn = document.activeElement;
+                  if (btn) {
+                    btn.style.color = 'var(--color-success)';
+                    setTimeout(() => { btn.style.color = ''; }, 1000);
+                  }
+                } catch {
+                  // clipboard not available
+                }
+              }
+            }}
+            aria-label="Share"
+            title="Share"
           >
-            <Archive size={15} />
+            <Share2 size={16} />
           </button>
-          <button
-            className={`${styles.toolBtn} ${styles.toolBtnDanger}`}
-            onClick={handleDeleteClick}
-            aria-label="Delete note"
-            title="Delete"
-          >
-            <Trash2 size={15} />
-          </button>
+          <div className={styles.moreMenuWrap} ref={moreMenuRef}>
+            <button
+              className={styles.toolBtn}
+              onClick={() => setShowMoreMenu((v) => !v)}
+              aria-label="More options"
+              title="More"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+            {showMoreMenu && (
+              <div className={styles.moreMenu}>
+                {note?.trashed ? (
+                  <>
+                    <button className={styles.moreMenuItem} onClick={handleRestore}>
+                      <ArchiveRestore size={14} />
+                      <span>Restore</span>
+                    </button>
+                    <button
+                      className={`${styles.moreMenuItem} ${styles.moreMenuItemDanger}`}
+                      onClick={handlePermanentDelete}
+                    >
+                      <Trash2 size={14} />
+                      <span>Delete permanently</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className={styles.moreMenuItem} onClick={handleArchive}>
+                      <Archive size={14} />
+                      <span>{note?.archived ? 'Unarchive' : 'Archive'}</span>
+                    </button>
+                    <button
+                      className={`${styles.moreMenuItem} ${styles.moreMenuItemDanger}`}
+                      onClick={handleTrashClick}
+                    >
+                      <Trash2 size={14} />
+                      <span>Move to Trash</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-
-        {!saved && (
-          <span className={styles.saving}>
-            <Loader2 size={13} className={styles.spinner} /> Saving…
-          </span>
-        )}
       </div>
 
       <div className={styles.editorInner}>
-
         {/* ── Title ── */}
-        <div className={styles.titleSection}>
-          <input
-            ref={titleRef}
-            className={styles.titleInput}
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Untitled"
-          />
-        </div>
+        <input
+          ref={titleRef}
+          className={styles.titleInput}
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Untitled Note"
+        />
 
-        {/* ── Meta bar: date + tags inline ── */}
-        <div className={styles.metaBar}>
-          <span className={styles.metaDate}>
-            {existingNote
-              ? `Created ${formatDate(existingNote.createdAt)}`
-              : 'Just now'}
-            {existingNote && existingNote.updatedAt !== existingNote.createdAt && (
-              <> · Updated {formatDate(existingNote.updatedAt)}</>
-            )}
-          </span>
-
+        {/* ── Tags ── */}
+        <div className={styles.tagsSection}>
           <div className={styles.tagList}>
             {tags.map((tag) => (
               <TagBadge key={tag} tag={tag} onRemove={handleRemoveTag} />
             ))}
             <input
-              className={styles.tagInputPill}
+              className={styles.tagInput}
               type="text"
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagKeyDown}
               onBlur={commitTag}
-              placeholder={tags.length === 0 ? 'Add tag…' : 'Add…'}
+              placeholder={tags.length === 0 ? 'Add tags…' : 'Add…'}
             />
           </div>
+          {tagInput && availableSuggestions.length > 0 && (
+            <div className={styles.suggestions}>
+              {availableSuggestions.slice(0, 5).map((t) => (
+                <span
+                  key={t}
+                  className={styles.suggestionChip}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    const normalized = normalizeTag(t);
+                    if (normalized && !tags.includes(normalized)) {
+                      setTags((prev) => [...prev, normalized]);
+                    }
+                    setTagInput('');
+                  }}
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Tag suggestions */}
-        {tagInput && availableSuggestions.length > 0 && (
-          <div className={styles.suggestions}>
-            {availableSuggestions.slice(0, 5).map((t) => (
-              <span
-                key={t}
-                className={styles.suggestionChip}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  const normalized = normalizeTag(t);
-                  if (normalized && !tags.includes(normalized)) {
-                    setTags((prev) => [...prev, normalized]);
-                  }
-                  setTagInput('');
-                }}
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* ── Metadata ── */}
+        <div className={styles.metadata}>
+          <span className={styles.metaItem}>
+            <Clock size={12} />
+            Updated {note ? formatDate(note.updatedAt) : 'just now'}
+          </span>
+          <span className={styles.metaItem}>
+            <Type size={12} />
+            {wordCount} words
+          </span>
+          <span className={styles.metaItem}>
+            <BookOpen size={12} />
+            {readingTime} min read
+          </span>
+        </div>
 
-        {/* ── Content ── */}
+        {/* ── Content (Editor) ── */}
         <div className={styles.contentArea}>
           <textarea
-            ref={textareaRef}
             className={styles.contentTextarea}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Start writing…"
+            placeholder="Start writing your note..."
           />
         </div>
 
-        {/* ── Bottom bar: word count + colour ── */}
-        <div className={styles.bottomBar}>
-          <span className={styles.wordCount}>
-            {wordCount > 0 ? `${wordCount} words · ${charCount} characters` : ''}
-          </span>
-
-          <div style={{ position: 'relative' }} ref={colorBtnRef}>
-            <button
-              className={styles.colorPickerBtn}
-              onClick={() => setShowColorPicker((v) => !v)}
-            >
-              <span
-                className={styles.colorDot}
-                style={{
-                  background: color,
-                  borderColor: color === '#ffffff' ? 'var(--color-border)' : color,
-                }}
-              />
-              <span>Colour</span>
-            </button>
-
-            {showColorPicker && (
-              <div
-                className={styles.colorPopover}
-                style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: '0.5rem' }}
-              >
-                {COLOR_OPTIONS.map((c) => (
-                  <button
-                    key={c}
-                    className={`${styles.swatch} ${color === c ? styles.swatchActive : ''}`}
-                    style={{
-                      background: c,
-                      borderColor: c === '#ffffff' ? 'var(--color-border)' : c,
-                    }}
-                    onClick={() => {
-                      setColor(c);
-                      setShowColorPicker(false);
-                    }}
-                    aria-label={`Select colour ${c}`}
-                  />
-                ))}
-              </div>
+        {/* ── Bottom Status Bar ── */}
+        <div className={styles.statusBar}>
+          <div className={styles.statusLeft}>
+            <span className={styles.statusItem}>{wordCount} words</span>
+            <span className={styles.statusItem}>{charCount} characters</span>
+          </div>
+          <div className={styles.statusRight}>
+            {!saved && (
+              <span className={styles.savingIndicator}>
+                <Loader2 size={12} className={styles.spinner} /> Saving…
+              </span>
+            )}
+            {saved && internalNoteId && (
+              <span className={styles.savedIndicator}>Autosaved</span>
             )}
           </div>
         </div>
-
       </div>
 
-      {/* ── Delete modal ── */}
+      {/* ── Move to Trash Modal ── */}
       <Modal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
-        title="Delete note"
+        title="Move to Trash"
         footer={
           <>
             <button className="btnSecondary" onClick={() => setDeleteModalOpen(false)}>
               Cancel
             </button>
-            <button className="btnDanger" onClick={confirmDelete}>
-              Delete
+            <button className="btnDanger" onClick={confirmTrash}>
+              Move to Trash
             </button>
           </>
         }
       >
-        Are you sure you want to delete this note? This action cannot be undone.
+        Are you sure you want to move this note to trash? You can restore it later.
       </Modal>
     </div>
   );

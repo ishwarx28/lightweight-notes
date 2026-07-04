@@ -1,5 +1,12 @@
-export function filterNotes(notes, { search, sort, archived, tag }) {
-  let result = notes.filter((n) => n.archived === archived);
+export function filterNotes(notes, { search, sort, archived, tag, trashed = false }) {
+  let result = notes;
+
+  if (trashed) {
+    result = result.filter((n) => n.trashed === true);
+  } else {
+    result = result.filter((n) => !n.trashed);
+    result = result.filter((n) => n.archived === archived);
+  }
 
   if (search) {
     const q = search.toLowerCase();

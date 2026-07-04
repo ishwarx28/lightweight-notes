@@ -9,9 +9,9 @@ const SEED_NOTES = [
     content:
       'This is your first note. You can edit it, pin it, archive it, or delete it.\n\nTry adding some tags to organise your notes!',
     tags: ['getting-started'],
-    color: '#fef3c7',
     pinned: true,
     archived: false,
+    trashed: false,
     createdAt: new Date(Date.now() - 86400000).toISOString(),
     updatedAt: new Date(Date.now() - 3600000).toISOString(),
   },
@@ -20,9 +20,9 @@ const SEED_NOTES = [
     title: 'Shopping List',
     content: 'Milk\nEggs\nBread\nAvocados\nOlive oil',
     tags: ['personal'],
-    color: '#dbeafe',
     pinned: false,
     archived: false,
+    trashed: false,
     createdAt: new Date(Date.now() - 172800000).toISOString(),
     updatedAt: new Date(Date.now() - 7200000).toISOString(),
   },
@@ -34,6 +34,7 @@ const SEED_NOTES = [
     color: '#e0e7ff',
     pinned: false,
     archived: false,
+    trashed: false,
     createdAt: new Date(Date.now() - 259200000).toISOString(),
     updatedAt: new Date(Date.now() - 86400000).toISOString(),
   },
@@ -45,6 +46,7 @@ export function NotesProvider({ children }) {
   const [notes, setNotes] = useLocalStorage('notes-app-notes', SEED_NOTES);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('newest');
+  const [selectedNoteId, setSelectedNoteId] = useState(null);
 
   const addNote = useCallback(
     (noteData = {}) => {
@@ -54,9 +56,9 @@ export function NotesProvider({ children }) {
         title: '',
         content: '',
         tags: [],
-        color: '#ffffff',
         pinned: false,
         archived: false,
+        trashed: false,
         createdAt: now,
         updatedAt: now,
         ...noteData,
@@ -80,18 +82,50 @@ export function NotesProvider({ children }) {
     [setNotes]
   );
 
-  const deleteNote = useCallback(
+  const trashNote = useCallback(
     (id) => {
-      setNotes((prev) => prev.filter((note) => note.id !== id));
+      setNotes((prev) =>
+        prev.map((note) =>
+          note.id === id
+            ? { ...note, trashed: true, updatedAt: new Date().toISOString() }
+            : note
+        )
+      );
+      setSelectedNoteId((prev) => (prev === id ? null : prev));
     },
     [setNotes]
   );
+
+  const restoreNote = useCallback(
+    (id) => {
+      setNotes((prev) =>
+        prev.map((note) =>
+          note.id === id
+            ? { ...note, trashed: false, updatedAt: new Date().toISOString() }
+            : note
+        )
+      );
+    },
+    [setNotes]
+  );
+
+  const permanentDeleteNote = useCallback(
+    (id) => {
+      setNotes((prev) => prev.filter((note) => note.id !== id));
+      setSelectedNoteId((prev) => (prev === id ? null : prev));
+    },
+    [setNotes]
+  );
+
+  const deleteNote = trashNote;
 
   const archiveNote = useCallback(
     (id) => {
       setNotes((prev) =>
         prev.map((note) =>
-          note.id === id ? { ...note, archived: !note.archived, updatedAt: new Date().toISOString() } : note
+          note.id === id
+            ? { ...note, archived: !note.archived, updatedAt: new Date().toISOString() }
+            : note
         )
       );
     },
@@ -102,7 +136,9 @@ export function NotesProvider({ children }) {
     (id) => {
       setNotes((prev) =>
         prev.map((note) =>
-          note.id === id ? { ...note, pinned: !note.pinned, updatedAt: new Date().toISOString() } : note
+          note.id === id
+            ? { ...note, pinned: !note.pinned, updatedAt: new Date().toISOString() }
+            : note
         )
       );
     },
@@ -122,9 +158,14 @@ export function NotesProvider({ children }) {
     setSearch,
     sort,
     setSort,
+    selectedNoteId,
+    setSelectedNoteId,
     addNote,
     updateNote,
     deleteNote,
+    trashNote,
+    restoreNote,
+    permanentDeleteNote,
     archiveNote,
     pinNote,
     getNote,
