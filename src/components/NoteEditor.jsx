@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Pin, PinOff, Archive, Trash2, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft, Pin, PinOff, Archive, Trash2, Loader2,
+} from 'lucide-react';
 import { TagBadge } from './TagBadge';
 import { Modal } from './Modal';
 import { useNotes } from '../hooks/useNotes';
@@ -16,7 +18,6 @@ export function NoteEditor({ noteId }) {
   const existingNote = noteId && noteId !== 'new' ? getNote(noteId) : null;
   const isNewParam = !existingNote && noteId === 'new';
 
-  // Initialize state from existing note or empty for new
   const [title, setTitle] = useState(() => existingNote?.title ?? '');
   const [content, setContent] = useState(() => existingNote?.content ?? '');
   const [tags, setTags] = useState(() => existingNote?.tags ?? []);
@@ -24,22 +25,21 @@ export function NoteEditor({ noteId }) {
   const [tagInput, setTagInput] = useState('');
   const [saved, setSaved] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
 
-  // noteIdState: the real note ID we're editing. For new notes, it starts null
-  // and gets set after creation.
   const [noteIdState, setNoteIdState] = useState(() =>
     existingNote ? existingNote.id : null
   );
 
   const titleRef = useRef(null);
-  const createdRef = useRef(false); // guards against double-creation in StrictMode
+  const textareaRef = useRef(null);
+  const createdRef = useRef(false);
+  const colorBtnRef = useRef(null);
 
-  // --- IMMEDIATE CREATION for /note/new ---
-  // On mount, if this is a new note, create it instantly and replace the URL.
-  // This avoids timer race conditions with deferred creation.
+  // ── Immediate creation for new notes ──
   useEffect(() => {
     if (!isNewParam) return;
-    if (createdRef.current) return; // StrictMode guard
+    if (createdRef.current) return;
     createdRef.current = true;
 
     const newNote = addNote({ title: '', content: '', tags: [], color: '#ffffff' });
@@ -48,7 +48,7 @@ export function NoteEditor({ noteId }) {
     setTimeout(() => titleRef.current?.focus(), 100);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // --- RE-INIT when navigating between existing notes ---
+  // ── Re-init when navigating between existing notes ──
   const initRef = useRef(null);
   useEffect(() => {
     if (!noteId || noteId === 'new') return;
@@ -68,8 +68,8 @@ export function NoteEditor({ noteId }) {
     }
   }, [noteId, getNote]);
 
-  // --- Auto-save (update only, never creates) ---
-  const autoSaveTimerRef = useRef(null);
+  // ── Auto-save ──
+  const savedTimerRef = useRef(null);
 
   useEffect(() => {
     if (!noteIdState) return;
@@ -87,8 +87,8 @@ export function NoteEditor({ noteId }) {
       if (hasChanged) {
         setSaved(false);
         updateNote(noteIdState, { title, content, tags, color });
-        clearTimeout(autoSaveTimerRef.current);
-        autoSaveTimerRef.current = setTimeout(() => setSaved(true), 400);
+        clearTimeout(savedTimerRef.current);
+        savedTimerRef.current = setTimeout(() => setSaved(true), 400);
       }
     }, 800);
 
@@ -98,11 +98,11 @@ export function NoteEditor({ noteId }) {
 
   useEffect(() => {
     return () => {
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
     };
   }, []);
 
-  // --- Tag handling ---
+  // ── Tag handling ──
   const normalizeTag = (input) => {
     const trimmed = input.trim();
     if (!trimmed) return null;
@@ -136,7 +136,7 @@ export function NoteEditor({ noteId }) {
     (t) => !tags.includes(t) && t.toLowerCase().includes(tagInput.toLowerCase())
   );
 
-  // --- Editor actions ---
+  // ── Actions ──
   const isPinned = getNote(noteIdState)?.pinned ?? false;
 
   const handlePin = () => {
@@ -162,17 +162,35 @@ export function NoteEditor({ noteId }) {
     }
   };
 
-  // --- Render ---
+  // ── Word count ──
+  const wordCount = content.trim()
+    ? content.trim().split(/\s+/).length
+    : 0;
+  const charCount = content.length;
+
+  // ── Close color picker on outside click ──
+  useEffect(() => {
+    if (!showColorPicker) return;
+    const handler = (e) => {
+      if (colorBtnRef.current && !colorBtnRef.current.contains(e.target)) {
+        setShowColorPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showColorPicker]);
+
+  // ── Render ──
   if (isNewParam && !noteIdState) {
-    // Still creating — show a brief loading state
     return (
       <div className={styles.editor}>
-        <div className={styles.backRow}>
-          <button className={styles.backBtn} onClick={() => navigate('/')}>
-            <ArrowLeft size={16} /> Back
+        <div className={styles.toolbar}>
+          <button className={styles.toolBack} onClick={() => navigate('/')}>
+            <ArrowLeft size={15} /> Back
           </button>
+          <div className={styles.toolbarSpacer} />
           <span className={styles.saving}>
-            <Loader2 size={14} className={styles.spinner} /> Creating…
+            <Loader2 size={13} className={styles.spinner} /> Creating…
           </span>
         </div>
       </div>
@@ -182,142 +200,180 @@ export function NoteEditor({ noteId }) {
   if (!noteIdState && !isNewParam) {
     return (
       <div className={styles.editor}>
-        <p>Note not found.</p>
-        <button className={styles.backBtn} onClick={() => navigate('/')}>
-          <ArrowLeft size={16} /> Back to notes
-        </button>
+        <div className={styles.toolbar}>
+          <button className={styles.toolBack} onClick={() => navigate('/')}>
+            <ArrowLeft size={15} /> Back
+          </button>
+        </div>
+        <p style={{ color: 'var(--color-text-tertiary)', marginTop: '2rem' }}>Note not found.</p>
       </div>
     );
   }
 
   return (
     <div className={styles.editor}>
-      <div className={styles.backRow}>
-        <button className={styles.backBtn} onClick={() => navigate('/')}>
-          <ArrowLeft size={16} /> Back
+
+      {/* ── Floating toolbar ── */}
+      <div className={styles.toolbar}>
+        <button className={styles.toolBack} onClick={() => navigate('/')}>
+          <ArrowLeft size={15} /> Back
         </button>
 
-        <div className={styles.editorActions}>
+        <div className={styles.toolbarSpacer} />
+
+        <div className={styles.toolbarGroup}>
           <button
-            className={`${styles.editorActionBtn} ${isPinned ? styles.active : ''}`}
+            className={`${styles.toolBtn} ${isPinned ? styles.toolBtnActive : ''}`}
             onClick={handlePin}
             aria-label={isPinned ? 'Unpin note' : 'Pin note'}
             title={isPinned ? 'Unpin' : 'Pin'}
           >
-            {isPinned ? <PinOff size={16} /> : <Pin size={16} />}
+            {isPinned ? <PinOff size={15} /> : <Pin size={15} />}
           </button>
           <button
-            className={styles.editorActionBtn}
+            className={styles.toolBtn}
             onClick={handleArchive}
             aria-label="Archive note"
             title="Archive"
           >
-            <Archive size={16} />
+            <Archive size={15} />
           </button>
           <button
-            className={`${styles.editorActionBtn} ${styles.danger}`}
+            className={`${styles.toolBtn} ${styles.toolBtnDanger}`}
             onClick={handleDeleteClick}
             aria-label="Delete note"
             title="Delete"
           >
-            <Trash2 size={16} />
+            <Trash2 size={15} />
           </button>
         </div>
 
         {!saved && (
           <span className={styles.saving}>
-            <Loader2 size={14} className={styles.spinner} /> Saving…
+            <Loader2 size={13} className={styles.spinner} /> Saving…
           </span>
         )}
       </div>
 
-      <input
-        ref={titleRef}
-        className={styles.titleInput}
-        type="text"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Note title…"
-      />
-
-      <div className={styles.metaRow}>
-        <span>
-          {existingNote
-            ? `Created ${formatDate(existingNote.createdAt)}`
-            : 'Just created'}
-        </span>
-        {existingNote && existingNote.updatedAt !== existingNote.createdAt && (
-          <span>· Updated {formatDate(existingNote.updatedAt)}</span>
-        )}
+      {/* ── Title ── */}
+      <div className={styles.titleSection}>
+        <input
+          ref={titleRef}
+          className={styles.titleInput}
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Untitled"
+        />
       </div>
 
-      <div>
-        <div
-          className={styles.tagInputWrapper}
-          onClick={() => document.getElementById('note-tag-input')?.focus()}
-        >
+      {/* ── Meta bar: date + tags inline ── */}
+      <div className={styles.metaBar}>
+        <span className={styles.metaDate}>
+          {existingNote
+            ? `Created ${formatDate(existingNote.createdAt)}`
+            : 'Just now'}
+          {existingNote && existingNote.updatedAt !== existingNote.createdAt && (
+            <> · Updated {formatDate(existingNote.updatedAt)}</>
+          )}
+        </span>
+
+        <div className={styles.tagList}>
           {tags.map((tag) => (
             <TagBadge key={tag} tag={tag} onRemove={handleRemoveTag} />
           ))}
           <input
-            id="note-tag-input"
-            className={styles.tagInput}
+            className={styles.tagInputPill}
             type="text"
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={handleTagKeyDown}
             onBlur={commitTag}
-            placeholder={tags.length === 0 ? 'Add tags…' : ''}
+            placeholder={tags.length === 0 ? 'Add tag…' : 'Add…'}
           />
         </div>
-        {tagInput && availableSuggestions.length > 0 && (
-          <div className={styles.suggestions}>
-            {availableSuggestions.slice(0, 5).map((t) => (
-              <span
-                key={t}
-                className={styles.suggestionChip}
-                onMouseDown={(e) => {
-                  // Use mouseDown to fire before blur
-                  e.preventDefault();
-                  const normalized = normalizeTag(t);
-                  if (normalized && !tags.includes(normalized)) {
-                    setTags((prev) => [...prev, normalized]);
-                  }
-                  setTagInput('');
-                }}
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
 
-      <textarea
-        className={styles.contentTextarea}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="Start writing…"
-      />
-
-      <div className={styles.colorRow}>
-        <span className={styles.colorLabel}>Colour</span>
-        <div className={styles.colorSwatches}>
-          {COLOR_OPTIONS.map((c) => (
-            <button
-              key={c}
-              className={`${styles.swatch} ${color === c ? styles.swatchActive : ''}`}
-              style={{
-                background: c,
-                border: c === '#ffffff' ? '2px solid var(--color-border)' : undefined,
+      {/* Tag suggestions */}
+      {tagInput && availableSuggestions.length > 0 && (
+        <div className={styles.suggestions}>
+          {availableSuggestions.slice(0, 5).map((t) => (
+            <span
+              key={t}
+              className={styles.suggestionChip}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                const normalized = normalizeTag(t);
+                if (normalized && !tags.includes(normalized)) {
+                  setTags((prev) => [...prev, normalized]);
+                }
+                setTagInput('');
               }}
-              onClick={() => setColor(c)}
-              aria-label={`Select colour ${c}`}
-            />
+            >
+              {t}
+            </span>
           ))}
+        </div>
+      )}
+
+      {/* ── Content ── */}
+      <div className={styles.contentArea}>
+        <textarea
+          ref={textareaRef}
+          className={styles.contentTextarea}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="Start writing…"
+        />
+      </div>
+
+      {/* ── Bottom bar: word count + colour ── */}
+      <div className={styles.bottomBar}>
+        <span className={styles.wordCount}>
+          {wordCount > 0 ? `${wordCount} words · ${charCount} characters` : ''}
+        </span>
+
+        <div style={{ position: 'relative' }} ref={colorBtnRef}>
+          <button
+            className={styles.colorPickerBtn}
+            onClick={() => setShowColorPicker((v) => !v)}
+          >
+            <span
+              className={styles.colorDot}
+              style={{
+                background: color,
+                borderColor: color === '#ffffff' ? 'var(--color-border)' : color,
+              }}
+            />
+            <span>Colour</span>
+          </button>
+
+          {showColorPicker && (
+            <div
+              className={styles.colorPopover}
+              style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: '0.5rem' }}
+            >
+              {COLOR_OPTIONS.map((c) => (
+                <button
+                  key={c}
+                  className={`${styles.swatch} ${color === c ? styles.swatchActive : ''}`}
+                  style={{
+                    background: c,
+                    borderColor: c === '#ffffff' ? 'var(--color-border)' : c,
+                  }}
+                  onClick={() => {
+                    setColor(c);
+                    setShowColorPicker(false);
+                  }}
+                  aria-label={`Select colour ${c}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
+      {/* ── Delete modal ── */}
       <Modal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
