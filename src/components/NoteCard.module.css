@@ -1,28 +1,29 @@
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  padding: 1.125rem 1.25rem;
   cursor: pointer;
-  transition: box-shadow 0.2s, transform 0.15s;
+  transition: box-shadow var(--transition-normal), transform var(--transition-normal), border-color var(--transition-normal);
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  animation: fadeIn 0.25s ease;
+  animation: fadeIn 0.35s ease forwards;
 }
 
 .card:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
+  border-color: #d4d4d8;
 }
 
 .cardArchived {
-  opacity: 0.75;
+  opacity: 0.6;
 }
 
 .cardArchived:hover {
-  opacity: 0.9;
+  opacity: 0.85;
 }
 
 .colorAccent {
@@ -31,24 +32,24 @@
   left: 0;
   right: 0;
   height: 4px;
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .archivedBadge {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 10px;
+  right: 10px;
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.125rem 0.4rem;
-  border-radius: 6px;
-  font-size: 0.65rem;
+  padding: 0.125rem 0.45rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.625rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: rgba(100, 116, 139, 0.12);
-  color: var(--color-text-secondary);
+  letter-spacing: 0.06em;
+  background: rgba(113, 113, 122, 0.1);
+  color: var(--color-text-tertiary);
   pointer-events: none;
 }
 
@@ -60,7 +61,7 @@
 }
 
 .title {
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--color-text-primary);
   line-height: 1.4;
@@ -68,13 +69,14 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
+  letter-spacing: -0.01em;
 }
 
 .actions {
   display: flex;
   gap: 0.125rem;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity var(--transition-fast);
   flex-shrink: 0;
 }
 
@@ -87,27 +89,33 @@
   align-items: center;
   justify-content: center;
   padding: 0.3rem;
-  border-radius: 6px;
-  color: var(--color-text-secondary);
-  transition: background 0.15s, color 0.15s;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .actionBtn:hover {
-  background: var(--color-border);
+  background: var(--color-border-light);
+  color: var(--color-text-secondary);
 }
 
 .actionBtn.active {
   color: var(--color-pinned);
 }
 
+.actionBtn.active:hover {
+  background: rgba(245, 158, 11, 0.1);
+}
+
 .actionBtn.danger:hover {
   color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.08);
 }
 
 .preview {
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
-  line-height: 1.5;
+  line-height: 1.6;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -116,14 +124,14 @@
 
 .previewEmpty {
   font-style: italic;
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
 .tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
-  margin-top: 0.25rem;
+  margin-top: 0.125rem;
 }
 
 .meta {
@@ -131,9 +139,9 @@
   align-items: center;
   justify-content: space-between;
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--color-text-tertiary);
   margin-top: auto;
-  padding-top: 0.25rem;
+  padding-top: 0.375rem;
 }
 
 .pinnedIcon {
@@ -141,8 +149,14 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Touch devices: always show action buttons */

@@ -10,12 +10,14 @@
 
 .pageTitle {
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: 650;
   color: var(--color-text-primary);
+  letter-spacing: -0.02em;
 }
 
 @media (max-width: 480px) {
   .grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 }
