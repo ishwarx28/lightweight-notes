@@ -205,7 +205,9 @@ export function NoteEditor({ noteId }) {
             <ArrowLeft size={15} /> Back
           </button>
         </div>
-        <p style={{ color: 'var(--color-text-tertiary)', marginTop: '2rem' }}>Note not found.</p>
+        <div className={styles.editorInner}>
+          <p style={{ color: 'var(--color-text-tertiary)', marginTop: '2rem' }}>Note not found.</p>
+        </div>
       </div>
     );
   }
@@ -255,122 +257,126 @@ export function NoteEditor({ noteId }) {
         )}
       </div>
 
-      {/* ── Title ── */}
-      <div className={styles.titleSection}>
-        <input
-          ref={titleRef}
-          className={styles.titleInput}
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Untitled"
-        />
-      </div>
+      <div className={styles.editorInner}>
 
-      {/* ── Meta bar: date + tags inline ── */}
-      <div className={styles.metaBar}>
-        <span className={styles.metaDate}>
-          {existingNote
-            ? `Created ${formatDate(existingNote.createdAt)}`
-            : 'Just now'}
-          {existingNote && existingNote.updatedAt !== existingNote.createdAt && (
-            <> · Updated {formatDate(existingNote.updatedAt)}</>
-          )}
-        </span>
-
-        <div className={styles.tagList}>
-          {tags.map((tag) => (
-            <TagBadge key={tag} tag={tag} onRemove={handleRemoveTag} />
-          ))}
+        {/* ── Title ── */}
+        <div className={styles.titleSection}>
           <input
-            className={styles.tagInputPill}
+            ref={titleRef}
+            className={styles.titleInput}
             type="text"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={handleTagKeyDown}
-            onBlur={commitTag}
-            placeholder={tags.length === 0 ? 'Add tag…' : 'Add…'}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Untitled"
           />
         </div>
-      </div>
 
-      {/* Tag suggestions */}
-      {tagInput && availableSuggestions.length > 0 && (
-        <div className={styles.suggestions}>
-          {availableSuggestions.slice(0, 5).map((t) => (
-            <span
-              key={t}
-              className={styles.suggestionChip}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                const normalized = normalizeTag(t);
-                if (normalized && !tags.includes(normalized)) {
-                  setTags((prev) => [...prev, normalized]);
-                }
-                setTagInput('');
-              }}
-            >
-              {t}
-            </span>
-          ))}
-        </div>
-      )}
+        {/* ── Meta bar: date + tags inline ── */}
+        <div className={styles.metaBar}>
+          <span className={styles.metaDate}>
+            {existingNote
+              ? `Created ${formatDate(existingNote.createdAt)}`
+              : 'Just now'}
+            {existingNote && existingNote.updatedAt !== existingNote.createdAt && (
+              <> · Updated {formatDate(existingNote.updatedAt)}</>
+            )}
+          </span>
 
-      {/* ── Content ── */}
-      <div className={styles.contentArea}>
-        <textarea
-          ref={textareaRef}
-          className={styles.contentTextarea}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Start writing…"
-        />
-      </div>
-
-      {/* ── Bottom bar: word count + colour ── */}
-      <div className={styles.bottomBar}>
-        <span className={styles.wordCount}>
-          {wordCount > 0 ? `${wordCount} words · ${charCount} characters` : ''}
-        </span>
-
-        <div style={{ position: 'relative' }} ref={colorBtnRef}>
-          <button
-            className={styles.colorPickerBtn}
-            onClick={() => setShowColorPicker((v) => !v)}
-          >
-            <span
-              className={styles.colorDot}
-              style={{
-                background: color,
-                borderColor: color === '#ffffff' ? 'var(--color-border)' : color,
-              }}
+          <div className={styles.tagList}>
+            {tags.map((tag) => (
+              <TagBadge key={tag} tag={tag} onRemove={handleRemoveTag} />
+            ))}
+            <input
+              className={styles.tagInputPill}
+              type="text"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleTagKeyDown}
+              onBlur={commitTag}
+              placeholder={tags.length === 0 ? 'Add tag…' : 'Add…'}
             />
-            <span>Colour</span>
-          </button>
-
-          {showColorPicker && (
-            <div
-              className={styles.colorPopover}
-              style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: '0.5rem' }}
-            >
-              {COLOR_OPTIONS.map((c) => (
-                <button
-                  key={c}
-                  className={`${styles.swatch} ${color === c ? styles.swatchActive : ''}`}
-                  style={{
-                    background: c,
-                    borderColor: c === '#ffffff' ? 'var(--color-border)' : c,
-                  }}
-                  onClick={() => {
-                    setColor(c);
-                    setShowColorPicker(false);
-                  }}
-                  aria-label={`Select colour ${c}`}
-                />
-              ))}
-            </div>
-          )}
+          </div>
         </div>
+
+        {/* Tag suggestions */}
+        {tagInput && availableSuggestions.length > 0 && (
+          <div className={styles.suggestions}>
+            {availableSuggestions.slice(0, 5).map((t) => (
+              <span
+                key={t}
+                className={styles.suggestionChip}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  const normalized = normalizeTag(t);
+                  if (normalized && !tags.includes(normalized)) {
+                    setTags((prev) => [...prev, normalized]);
+                  }
+                  setTagInput('');
+                }}
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* ── Content ── */}
+        <div className={styles.contentArea}>
+          <textarea
+            ref={textareaRef}
+            className={styles.contentTextarea}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Start writing…"
+          />
+        </div>
+
+        {/* ── Bottom bar: word count + colour ── */}
+        <div className={styles.bottomBar}>
+          <span className={styles.wordCount}>
+            {wordCount > 0 ? `${wordCount} words · ${charCount} characters` : ''}
+          </span>
+
+          <div style={{ position: 'relative' }} ref={colorBtnRef}>
+            <button
+              className={styles.colorPickerBtn}
+              onClick={() => setShowColorPicker((v) => !v)}
+            >
+              <span
+                className={styles.colorDot}
+                style={{
+                  background: color,
+                  borderColor: color === '#ffffff' ? 'var(--color-border)' : color,
+                }}
+              />
+              <span>Colour</span>
+            </button>
+
+            {showColorPicker && (
+              <div
+                className={styles.colorPopover}
+                style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: '0.5rem' }}
+              >
+                {COLOR_OPTIONS.map((c) => (
+                  <button
+                    key={c}
+                    className={`${styles.swatch} ${color === c ? styles.swatchActive : ''}`}
+                    style={{
+                      background: c,
+                      borderColor: c === '#ffffff' ? 'var(--color-border)' : c,
+                    }}
+                    onClick={() => {
+                      setColor(c);
+                      setShowColorPicker(false);
+                    }}
+                    aria-label={`Select colour ${c}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
 
       {/* ── Delete modal ── */}
