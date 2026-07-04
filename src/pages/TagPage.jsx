@@ -29,16 +29,20 @@ export function TagPage() {
 
   if (!tagName) {
     return (
-      <EmptyState
-        icon={Tags}
-        title="Select a tag"
-        description="Choose a tag from the sidebar to filter notes."
-      />
+      <div className={styles.page}>
+        <div className={styles.emptyWrapper}>
+          <EmptyState
+            icon={Tags}
+            title="Select a tag"
+            description="Choose a tag from the sidebar to filter notes."
+          />
+        </div>
+      </div>
     );
   }
 
   return (
-    <div>
+    <div className={styles.page}>
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>
           <Tags size={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />
@@ -47,11 +51,13 @@ export function TagPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState
-          icon={Tags}
-          title="No notes with this tag"
-          description="Add this tag to a note to see it here."
-        />
+        <div className={styles.emptyWrapper}>
+          <EmptyState
+            icon={Tags}
+            title="No notes with this tag"
+            description="Add this tag to a note to see it here."
+          />
+        </div>
       ) : (
         <div className={styles.grid}>
           {filtered.map((note) => (

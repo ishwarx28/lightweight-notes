@@ -27,17 +27,19 @@ export function ArchivedPage() {
   };
 
   return (
-    <div>
+    <div className={styles.page}>
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Archived Notes</h1>
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState
-          icon={Archive}
-          title="No archived notes"
-          description="Archive notes to keep them out of the way."
-        />
+        <div className={styles.emptyWrapper}>
+          <EmptyState
+            icon={Archive}
+            title="No archived notes"
+            description="Archive notes to keep them out of the way."
+          />
+        </div>
       ) : (
         <div className={styles.grid}>
           {filtered.map((note) => (

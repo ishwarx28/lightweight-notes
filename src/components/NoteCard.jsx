@@ -23,13 +23,6 @@ export function NoteCard({ note, onPin, onArchive, onDelete, onClick }) {
         <div className={styles.colorAccent} style={{ background: note.color }} />
       )}
 
-      {note.archived && (
-        <div className={styles.archivedBadge}>
-          <Archive size={10} />
-          Archived
-        </div>
-      )}
-
       <div className={styles.header}>
         <h3 className={styles.title}>
           {note.title || 'Untitled'}
@@ -72,7 +65,15 @@ export function NoteCard({ note, onPin, onArchive, onDelete, onClick }) {
       )}
 
       <div className={styles.meta}>
-        <span>{formatDate(note.updatedAt)}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+          <span>{formatDate(note.updatedAt)}</span>
+          {note.archived && (
+            <span className={styles.archivedBadge}>
+              <Archive size={9} />
+              Archived
+            </span>
+          )}
+        </div>
         {note.pinned && <Pin size={12} className={styles.pinnedIcon} />}
       </div>
     </article>

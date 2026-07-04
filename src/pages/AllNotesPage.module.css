@@ -1,3 +1,14 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.emptyWrapper {
+  flex: 1;
+  display: flex;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));

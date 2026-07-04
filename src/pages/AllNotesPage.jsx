@@ -27,7 +27,7 @@ export function AllNotesPage() {
   };
 
   return (
-    <div>
+    <div className={styles.page}>
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>
           {search ? `Results for "${search}"` : 'All Notes'}
@@ -35,15 +35,17 @@ export function AllNotesPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState
-          icon={search ? Inbox : FileText}
-          title={search ? 'No notes found' : 'No notes yet'}
-          description={
-            search
-              ? 'Try a different search term.'
-              : 'Create your first note to get started!'
-          }
-        />
+        <div className={styles.emptyWrapper}>
+          <EmptyState
+            icon={search ? Inbox : FileText}
+            title={search ? 'No notes found' : 'No notes yet'}
+            description={
+              search
+                ? 'Try a different search term.'
+                : 'Create your first note to get started!'
+            }
+          />
+        </div>
       ) : (
         <div className={styles.grid}>
           {filtered.map((note) => (
