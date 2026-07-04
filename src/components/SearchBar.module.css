@@ -1,21 +1,21 @@
 .searchBar {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   background: var(--color-bg);
-  border: 1px solid var(--color-border);
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
-  padding: 0.5rem 0.875rem;
+  padding: 0.35rem 0.625rem;
   flex: 1;
   min-width: 0;
-  max-width: 360px;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+  max-width: 280px;
+  transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .searchBar:focus-within {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-light);
   background: var(--color-surface);
+  box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.15);
 }
 
 .searchIcon {
@@ -28,15 +28,14 @@
   outline: none;
   background: transparent;
   color: var(--color-text-primary);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   width: 100%;
   min-width: 0;
-  font-weight: 450;
+  font-weight: 400;
 }
 
 .input::placeholder {
   color: var(--color-text-tertiary);
-  font-weight: 400;
 }
 
 @media (max-width: 640px) {
