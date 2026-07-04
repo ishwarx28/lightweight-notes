@@ -10,7 +10,7 @@ export function Modal({ isOpen, onClose, title, children, footer }) {
         <div className={styles.header}>
           <h3 className={styles.title}>{title}</h3>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
         {children != null && <div className={styles.body}>{children}</div>}
