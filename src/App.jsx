@@ -3,11 +3,14 @@ import { NotesProvider } from './contexts/NotesContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Layout } from './components/Layout/Layout';
 import { AllNotesPage } from './pages/AllNotesPage';
-import { NoteDetailPage } from './pages/NoteDetailPage';
 import { ArchivedPage } from './pages/ArchivedPage';
 import { TagPage } from './pages/TagPage';
+import { useTheme } from './hooks/useTheme';
 
-export default function App() {
+function AppContent() {
+  // Initialise theme on mount — sets data-theme on <html>
+  useTheme();
+
   return (
     <NotesProvider>
       <ErrorBoundary>
@@ -15,7 +18,6 @@ export default function App() {
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<AllNotesPage />} />
-              <Route path="/note/:id" element={<NoteDetailPage />} />
               <Route path="/archived" element={<ArchivedPage />} />
               <Route path="/tag/:tagName" element={<TagPage />} />
             </Route>
@@ -24,4 +26,8 @@ export default function App() {
       </ErrorBoundary>
     </NotesProvider>
   );
+}
+
+export default function App() {
+  return <AppContent />;
 }
